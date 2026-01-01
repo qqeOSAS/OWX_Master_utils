@@ -50,6 +50,12 @@ The following data types are supported:
 
 ---
 
+OWX_slave_emulator Library (important)
+-------------------------------------------------
+When developing a project that uses the OWX_master_utils on the master side, You have to use slave-side library — OWX_Slave_Emulator.
+link to [OWX_Slave_Emulator](https://github.com/qqeOSAS/One_Wire_EXTENDED_Slave_Emulator)
+
+
 ## Dependencies
 
 - Arduino framework
@@ -68,5 +74,61 @@ Add to `platformio.ini`:
 lib_deps =
     paulstoffregen/OneWire
     https://github.com/qqeOSAS/OWX_Master_utils.git
+```
+Example of wiring 
+-------------
+
+
+```
+    Example of wiring OWX master with multiple OWX slaves:
+                     ┌────────────────────────────────────────────────┐
+                     │               One Wire Master                  ├─── GND -------------------- GND (Slave1)
+                     │                                                │                            GND (Slave2)
+                     │                                                ├─── VCC -------------------------------- VCC (Slave1)
+                     │                                                │                                         VCC (Slave2)
+                     │                                                ├─── DQ |──[4.7kΩ]─── VCC
+                     └────────────────────────────────────────────────|       |
+                                                                              │
+                                    |----------------------------------------│ 1-Wire Bus (DQ)
+                                    |                                          
+                                    |
+                                    |                ┌─────────────────────── SLAVE 1 ───────────────────────┐
+                                    |                │                                                      │
+                                    |                │   GND ----------------------------------------------------------+
+                                    |                │   VCC ----------------------------------------------------------+
+                                    |----------------------------------DQ
+                                    |                └───────────────────────────────────────────────────────┘
+                                    |
+                                    |                ┌─────────────────────── SLAVE 2 ───────────────────────┐
+                                    |                │                                                      
+                                    |                │   GND ----------------------------------------------------------+
+                                    |                │   VCC ----------------------------------------------------------+
+                                    |-----------------------------+ DQ
+                                                     └───────────────────────────────────────────────────────┘
+
+```
+Packet structure example
+----------------------------
+```
+
+    ┌──────────────────────────────────────────────────────────────────────────────┐
+    │                         OWX PACKET FORMAT (SLAVE → MASTER)                   │
+    ├──────────────────────────────────────────────────────────────────────────────┤
+    │ [ CMD_SEND_VARIABLE |  CMD_data_type |  LEN  |  PAYLOAD (N bytes)  |  CRC8 ] │  
+    │       (1 byte)           (1 byte)     (1 byte)     (N bytes)    (1 byte)     │
+    ├──────────────────────────────────────────────────────────────────────────────┤
+    │  Example: 0x01 | 0x0F | 0x01 | 0x7A | CRC                                    │
+    │           │       │       │       └── payload (e.g. one int8)                │
+    │           │       │       └────────── length in bytes                        │
+    │           │       └────────────────── command describing data type           │
+    │           └────────────────────────── main command "send variable"           │
+    └──────────────────────────────────────────────────────────────────────────────┘
+
+
+```
+
+
+
+
 
 
