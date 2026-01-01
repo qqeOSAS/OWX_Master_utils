@@ -17,11 +17,14 @@
 #define OW_CMD_CHAR8       0x13  // payload: 1 byte (char)
 #define OW_CMD_STRUCT      0x14  // payload: N bytes (структура, LEN в заголовку)
 
-#define OW_CMD_REQUEST     0x20  // майстер просить значення від слейва
+
+#define OW_HANDLER_COMMAND 0xFF // користувацька команда для обробки користувацьким обробником
+
+#define OW_READ_SCRATCHPAD 0x20  // Команда читання scratchpad
 #define OW_CMD_ACK         0x30  // підтвердження прийому
 #define OW_CMD_NACK        0x31  // помилка
 
-#define REQEST_READ_INT16 0xA0 // запит на читання int16_t зі слейва
+#define OW_REQUEST_UPDATE 0xA0 // запит на читання int16_t зі слейва
 #define OW_SCRATCHPAD_SIZE 9  // розмір scratchpad в байтах
 
 // Формат пакету для передачі даних між майстром та слейвом
@@ -42,7 +45,6 @@ static uint8_t crc8_local(const uint8_t *data, size_t len, uint8_t crc_init = 0)
     }
     return crc;
 }
-
 
 // Select the slave device by its ROM address
 void select_OW_slave(OneWire& ow, uint8_t* rom_addr){
@@ -85,6 +87,15 @@ void write_packet(uint8_t cmd,uint8_t* data, int len, OneWire& ow) {
     ow.reset();
    
 }
+// {HANDLER COMMAND, uint8_t cmd}
+void ow_write_handler_command(OneWire& ow, uint8_t cmd){
+    ow.reset();
+    ow.skip(); // Select
+    ow.write(OW_HANDLER_COMMAND);
+    ow.write(cmd);
+   
+}
+
 void ow_write_int8(OneWire& ow, int8_t &value){
     uint8_t data[1];
     data[0] = (uint8_t)value;
@@ -134,18 +145,110 @@ void ow_write_char8(OneWire& ow, char &value){
     write_packet(OW_CMD_CHAR8, data, 1, ow);
 }
 
-void recive_slave_int16_packet(OneWire& ow, int16_t *value){
-    ow.reset();
-    ow.skip(); // Select
-    ow.write(REQEST_READ_INT16);
+uint8_t* readScratchpad(OneWire& ow) {
+    static uint8_t scratchpad[9]; 
 
-    //очікуємо відповідь
-    uint8_t resp_cmd = ow.read();
-    if (resp_cmd == REQEST_READ_INT16) {
-        uint8_t data[2];
-        ow.read_bytes(data, 2);
-        *value = (int16_t)(data[0] | (data[1] << 8));
+    if (!ow.reset()) {
+        Serial.println("No device found!");
+        return nullptr;
     }
+
+    ow.skip(); 
+    ow.write(OW_READ_SCRATCHPAD); 
+
+    for (int i = 0; i < 9; i++) {
+        scratchpad[i] = ow.read();
+    }
+
+    Serial.print("Scratchpad: ");
+    for (int i = 0; i < 9; i++) {
+        Serial.print(scratchpad[i], HEX);
+        Serial.print(" ");
+    }
+    Serial.println();
+
+    return scratchpad; 
+}
+/*
+    The process of reading int16_t from scratchpad, or any other data type, involves the following steps:
+
+
+    +---------------------------------------------------------------+
+    |  0   |  1   |  2   |  3   |  4   |  5   |  6   |  7   |  8   |
+    +---------------------------------------------------------------+
+    |     int16   |    int16    |   int16     |    int16    | byte  |
+    +---------------------------------------------------------------+
+    ^
+    |
+    READ offset = 0
+
+
+*/
+
+
+void parse_int16_scratchpad(OneWire& ow, int16_t &target_value, uint8_t* scratchpad,uint8_t read_offset) {
+    if(scratchpad == nullptr) {
+        Serial.println("Failed to read scratchpad.");
+        return;
+    }
+    target_value = (int16_t)(scratchpad[read_offset] | (scratchpad[read_offset + 1] << 8));
+ 
+}
+void parse_uint16_scratchpad(OneWire& ow, uint16_t &target_value, uint8_t* scratchpad,uint8_t read_offset) {
+    if(scratchpad == nullptr) {
+        Serial.println("Failed to read scratchpad.");
+        return;
+    }
+    target_value = (uint16_t)(scratchpad[read_offset] | (scratchpad[read_offset + 1] << 8));
+ 
+}
+void parse_uint8_scratchpad(OneWire& ow, uint8_t &target_value, uint8_t* scratchpad,uint8_t read_offset) {
+    if(scratchpad == nullptr) {
+        Serial.println("Failed to read scratchpad.");
+        return;
+    }
+    target_value = (uint8_t)(scratchpad[read_offset]);
+ 
+}
+void parse_int8_scratchpad(OneWire& ow, int8_t &target_value, uint8_t* scratchpad,uint8_t read_offset) {
+    if(scratchpad == nullptr) {
+        Serial.println("Failed to read scratchpad.");
+        return;
+    }
+    target_value = (int8_t)(scratchpad[read_offset]);
+ 
+}
+void parse_float32_scratchpad(OneWire& ow, float &target_value, uint8_t* scratchpad,uint8_t read_offset) {
+    if(scratchpad == nullptr) {
+        Serial.println("Failed to read scratchpad.");
+        return;
+    }
+    memcpy(&target_value, &scratchpad[read_offset], sizeof(float));
+ 
+}
+void parse_char8_scratchpad(OneWire& ow, char &target_value, uint8_t* scratchpad,uint8_t read_offset) {
+    if(scratchpad == nullptr) {
+        Serial.println("Failed to read scratchpad.");
+        return;
+    }
+    target_value = (char)(scratchpad[read_offset]);
+ 
+}
+void parse_int32_scratchpad(OneWire& ow, int32_t &target_value, uint8_t* scratchpad,uint8_t read_offset) {
+    if(scratchpad == nullptr) {
+        Serial.println("Failed to read scratchpad.");
+        return;
+    }
+    target_value = (int32_t)(scratchpad[read_offset] | (scratchpad[read_offset + 1] << 8) | (scratchpad[read_offset + 2] << 16) | (scratchpad[read_offset + 3] << 24));
+ 
+}
+void parse_uint32_scratchpad(OneWire& ow, uint32_t &target_value, uint8_t* scratchpad,uint8_t read_offset) {
+    if(scratchpad == nullptr) {
+        Serial.println("Failed to read scratchpad.");
+        return;
+    }
+    target_value = (uint32_t)(scratchpad[read_offset] | (scratchpad[read_offset + 1] << 8) | (scratchpad[read_offset + 2] << 16) | (scratchpad[read_offset + 3] << 24));
+ 
 }
 
 
