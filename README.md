@@ -1,12 +1,26 @@
 # OWX Master Utils
 
-A helper library for building **extended OneWire (1-Wire) master devices** that communicate with **OWX-compatible slave emulators**.
+[![PlatformIO](https://img.shields.io/badge/PlatformIO-compatible-green)](https://platformio.org/)
 
-> ⚠️ This library **does NOT replace** the original OneWire library.  
-> It **extends** it with a higher-level, packet-based protocol.
+
+---
+
+   _____        ____  __    __  __           _              _   _ _   _ _     
+  / _ \ \      / /\ \/ /   |  \/  | __ _ ___| |_ ___ _ __  | | | | |_(_) |___ 
+ | | | \ \ /\ / /  \  /    | |\/| |/ _` / __| __/ _ \ '__| | | | | __| | / __|
+ | |_| |\ V  V /   /  \    | |  | | (_| \__ \ ||  __/ |    | |_| | |_| | \__ \
+  \___/  \_/\_/   /_/\_\___|_|  |_|\__,_|___/\__\___|_|     \___/ \__|_|_|___/
+                      |_____|                                                 
+                      
+
+
+
+
+
+ Helper library for building `OWX systems` on master side.
+
 
 Author: **qqeOSAS**  
-GitHub: https://github.com/qqeOSAS/OWX_Master_utils
 
 ---
 
@@ -54,3 +68,4 @@ Add to `platformio.ini`:
 lib_deps =
     paulstoffregen/OneWire
     https://github.com/qqeOSAS/OWX_Master_utils.git
+
